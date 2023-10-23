@@ -316,7 +316,8 @@ class TreeExtractor(object):
             height = int(self.elems[page_num].layout.height)
             page.setAttribute(
                 "title",
-                f"bbox 0 0 {width} {height}; ppageno {page_num-1}",
+                #f"bbox 0 0 {width} {height}; ppageno {page_num-1}",
+                f"bbox 0 0 {width} {height}",
             )
             body.appendChild(page)
             # TODO: We need to detect columns and sort acccordingly.
