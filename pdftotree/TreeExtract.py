@@ -220,7 +220,7 @@ class TreeExtractor(object):
         return self.font_stats
 
     def get_tree_structure(self, model_type, model) -> Dict[str, Any]:
-        tables: Dict[int, List[Tuple(int, int, int, float, float, float, float)]] = {}
+        tables: Dict[int, List[Tuple[int, int, int, float, float, float, float]]] = {}
         # use vision to get tables
         if model_type == "vision":
             from pdftotree.visual.visual_utils import get_bboxes, predict_heatmap
@@ -322,10 +322,10 @@ class TreeExtractor(object):
             # TODO: We need to detect columns and sort acccordingly.
             boxes.sort(key=cmp_to_key(column_order))
 
-            for box in boxes:
+            for box_id, box in enumerate(boxes):
                 if box[0] == "table":
                     table = box[1:]  # bbox
-                    table_element = self.get_html_table(table, page_num)
+                    table_element = self.get_html_table(table, page_num, box_id)
                     page.appendChild(table_element)
                 elif box[0] == "figure":
                     elems: List[LTTextLine] = get_mentions_within_bbox(
@@ -358,7 +358,7 @@ class TreeExtractor(object):
                             "src", f"data:image/{mediatype};base64,{base64}"
                         )
                 else:
-                    element = self.get_html_others(box[0], box[1:], page_num)
+                    element = self.get_html_others(box[0], box[1:], page_num, box_id)
                     page.appendChild(element)
         return doc.toprettyxml()
 
@@ -409,9 +409,10 @@ class TreeExtractor(object):
                 mention_chars.append([obj.get_text(), y0, x0, y1, x1])
         return mention_chars
 
-    def get_html_others(self, tag: str, box: List[float], page_num: int) -> Element:
+    def get_html_others(self, tag: str, box: List[float], page_num: int, box_id: int) -> Element:
         element = self.doc.createElement("div")
         element.setAttribute("class", "ocrx_block")
+        element.setAttribute("id", f"block_{page_num}_{box_id}")
         element.setAttribute("pdftotree", tag)  # for backward-compatibility
         top, left, bottom, right = [int(x) for x in box]
         element.setAttribute("title", f"bbox {left} {top} {right} {bottom}")
@@ -419,18 +420,20 @@ class TreeExtractor(object):
             box, self.elems[page_num].mentions
         )
         elems.sort(key=cmp_to_key(reading_order))
-        for elem in elems:
+        for line_id, elem in enumerate(elems):
             line_element = self.doc.createElement("span")
             element.appendChild(line_element)
             line_element.setAttribute("class", "ocrx_line")
+            line_element.setAttribute("id", f"line_{page_num}_{box_id}_{line_id}")
             line_element.setAttribute("title", bbox2str(elem.bbox))
             words = self.get_word_boundaries(elem)
-            for word in words:
+            for word_id, word in enumerate(words):
                 top, left, bottom, right = [int(x) for x in word[1:]]
 
                 word_element = self.doc.createElement("span")
                 line_element.appendChild(word_element)
                 word_element.setAttribute("class", "ocrx_word")
+                word_element.setAttribute("id", f"word_{page_num}_{box_id}_{line_id}_{word_id}")
                 word_element.setAttribute(
                     "title", f"bbox {left} {top} {right} {bottom}"
                 )
@@ -438,7 +441,7 @@ class TreeExtractor(object):
                 word_element.appendChild(self.doc.createTextNode(word[0]))
         return element
 
-    def get_html_table(self, table: List[float], page_num) -> Optional[Element]:
+    def get_html_table(self, table: List[float], page_num, box_id) -> Optional[Element]:
         """Recognize a table using tabula and return a DOM element.
 
         :param table: bbox for a table (top,left,bottom,right)
@@ -459,6 +462,7 @@ class TreeExtractor(object):
             return None
         table_element = self.doc.createElement("table")
         table_element.setAttribute("class", "ocr_table")
+        table_element.setAttribute("id", f"table_{page_num}_{box_id}")
         top = int(table_json[0]["top"])
         left = int(table_json[0]["left"])
         bottom = int(table_json[0]["bottom"])
@@ -487,13 +491,14 @@ class TreeExtractor(object):
                     f"bbox {int(box[1])} {int(box[0])} {int(box[3])} {int(box[2])}",
                 )
                 elems.sort(key=cmp_to_key(reading_order))
-                for elem in elems:
+                for line_id, elem in enumerate(elems):
                     line_element = self.doc.createElement("span")
                     cell_element.appendChild(line_element)
                     line_element.setAttribute("class", "ocrx_line")
+                    line_element.setAttribute("id", f"line_{page_num}_{box_id}_{line_id}")
                     line_element.setAttribute("title", bbox2str(elem.bbox))
                     words = self.get_word_boundaries(elem)
-                    for word in words:
+                    for word_id, word in enumerate(words):
                         top = int(word[1])
                         left = int(word[2])
                         bottom = int(word[3])
@@ -502,6 +507,7 @@ class TreeExtractor(object):
                         word_element = self.doc.createElement("span")
                         line_element.appendChild(word_element)
                         word_element.setAttribute("class", "ocrx_word")
+                        word_element.setAttribute("id", f"word_{page_num}_{box_id}_{line_id}_{word_id}")
                         word_element.setAttribute(
                             "title", f"bbox {left} {top} {right} {bottom}"
                         )
