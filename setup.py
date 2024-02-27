@@ -1,6 +1,9 @@
 """For pip."""
 from setuptools import find_packages, setup
 
+import os
+os.system("export SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL=True")
+
 exec(open("pdftotree/_version.py").read())
 setup(
     name="pdftotree",
