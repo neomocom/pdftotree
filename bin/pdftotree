@@ -18,8 +18,8 @@ if __name__ == "__main__":
         "--model_type",
         type=str,
         default=None,
-        choices=["vision", "ml", None],
-        help="Model type to use.  None (default) for heuristics approach.",
+        choices=["vision", "ml", "heuristics", None],
+        help="Model type to use. Heuristics for an heuristic approach. None to skip table extraction",
     )
     parser.add_argument(
         "-m",

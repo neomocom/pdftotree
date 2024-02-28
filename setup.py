@@ -28,7 +28,7 @@ setup(
     keywords=["pdf", "parsing", "html", "hocr"],
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
-    url="https://github.com/HazyResearch/pdftotree",
+    url="https://github.com/neomocom/pdftotree",
     scripts=["bin/pdftotree", "bin/extract_tables"],
     classifiers=[  # https://pypi.python.org/pypi?:action=list_classifiers
         "Development Status :: 3 - Alpha",
@@ -41,8 +41,8 @@ setup(
         "Programming Language :: Python :: 3 :: Only",
     ],
     project_urls={
-        "Tracker": "https://github.com/HazyResearch/pdftotree/issues",
-        "Source": "https://github.com/HazyResearch/pdftotree",
+        "Tracker": "https://github.com/neomocom/pdftotree/issues",
+        "Source": "https://github.com/neomocom/pdftotree",
     },
     python_requires=">=3.6",
     author="Hazy Research",

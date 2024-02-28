@@ -254,9 +254,13 @@ class TreeExtractor(object):
                     ]
 
         # use heuristics to get tables if no model_type is provided
-        else:
+        elif model_type == "heuristics":
             for page_num in self.elems.keys():
                 tables[page_num] = self.get_tables_page_num(page_num)
+        else:
+            logger.info("Skipping table extraction")
+            for page_num in self.elems.keys():
+                tables[page_num] = {}
 
         # Manage References - indicator to indicate if reference has been seen
         ref_page_seen = False
