@@ -16,9 +16,9 @@ model_path argument = TreeStructure/data/paleo/ml/model.pkl.
 
 Other tree parts are detected using heuristic methods.
 """
+
 import codecs
 import logging
-import os
 import pickle
 
 from pdftotree.TreeExtract import TreeExtractor
@@ -41,12 +41,11 @@ def load_model(model_type, model_path):
 
 def visualize_tree(pdf_file, pdf_tree, html_path):
     v = TreeVisualizer(pdf_file)
-    filename_prefix = os.path.basename(pdf_file)
-    v.display_candidates(pdf_tree, html_path, filename_prefix)
+    v.display_candidates(pdf_tree, html_path, "pdf")
 
 
 def parse(
-    pdf_file,
+    pdf_string,
     html_path=None,
     model_type=None,
     model_path=None,
@@ -55,7 +54,7 @@ def parse(
     model = None
     if model_type is not None and model_path is not None:
         model = load_model(model_type, model_path)
-    extractor = TreeExtractor(pdf_file)
+    extractor = TreeExtractor(pdf_string)
     if extractor.is_scanned():
         logger.warning("Document looks scanned, the result may be far from expected.")
     else:
@@ -73,4 +72,4 @@ def parse(
     with codecs.open(html_path, encoding="utf-8", mode="w") as f:
         f.write(pdf_html)
     if visualize:
-        visualize_tree(pdf_file, pdf_tree, html_path)
+        visualize_tree(pdf_string, pdf_tree, html_path)

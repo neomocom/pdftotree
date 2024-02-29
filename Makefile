@@ -2,11 +2,11 @@ TESTDATA=tests/input
 
 dev: 
 	pip install -r requirements-dev.txt
-	pip install -e . --use-feature=2020-resolver
+	pip install -e .
 	pre-commit install
 
 test: $(TESTDATA)/paleo_visual_model.h5 dev check
-	pytest tests 
+	pytest tests
 
 $(TESTDATA)/paleo_visual_model.h5:
 	cd tests/input/ && ./download_vision_model.sh

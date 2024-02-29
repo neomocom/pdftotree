@@ -85,16 +85,17 @@ if __name__ == "__main__":
     ch.setFormatter(formatter)
     log.addHandler(ch)
 
-    # Call the main routine
-    result = pdftotree.parse(
-        args.pdf_file,
-        args.output,
-        args.model_type,
-        args.model_path,
-        args.visualize,
-    )
+    with open(os.path.realpath(args.pdf_file), "rb") as fp:
+        # Call the main routine
+        result = pdftotree.parse(
+            fp.read(),
+            args.output,
+            args.model_type,
+            args.model_path,
+            args.visualize,
+        )
 
-    if args.output is None:
-        print(result)
-    else:
-        print("hOCR output to {}".format(args.output))
+        if args.output is None:
+            print(result)
+        else:
+            print("hOCR output to {}".format(args.output))

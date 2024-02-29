@@ -1,3 +1,4 @@
+import io
 import logging
 import os
 import tempfile
@@ -39,8 +40,8 @@ class TreeExtractor(object):
     Object to extract tree structure from pdf files
     """
 
-    def __init__(self, pdf_file):
-        self.pdf_file = pdf_file
+    def __init__(self, pdf_string):
+        self.pdf_string = pdf_string
         self.elems: Dict[int, PDFElems] = {}  # key represents page_num
         self.font_stats: Dict[int, Any] = {}  # key represents page_num
         self.iou_thresh = 0.8
@@ -95,32 +96,29 @@ class TreeExtractor(object):
         layouts: List[LTPage] = []
 
         log = logging.getLogger(__name__)
-        # Open a PDF file.
-        with open(os.path.realpath(self.pdf_file), "rb") as fp:
-            # Create a PDF parser object associated with the file object.
-            parser = PDFParser(fp)
-            # Create a PDF document object that stores the document structure.
-            # Supply the password for initialization.
-            document = PDFDocument(parser, password="")
-            # Create a PDF resource manager object that stores shared resources.
-            rsrcmgr = PDFResourceManager()
-            # Set parameters for analysis.
-            laparams = LAParams(char_margin=1.0, word_margin=0.1, detect_vertical=True)
-            # Create a PDF page aggregator object.
-            device = CustomPDFPageAggregator(rsrcmgr, laparams=laparams)
-            # Create a PDF interpreter object.
-            interpreter = PDFPageInterpreter(rsrcmgr, device)
-            # Process each page contained in the document.
-            for page_num, page in enumerate(PDFPage.create_pages(document)):
-                try:
-                    interpreter.process_page(page)
-                except OverflowError as oe:
-                    log.exception(
-                        "{}, skipping page {} of {}".format(oe, page_num, self.pdf_file)
-                    )
-                    continue
-                layout = device.get_result()
-                layouts.append(layout)
+
+        # Create a PDF parser object associated with the file object.
+        parser = PDFParser(io.BytesIO(self.pdf_string))
+        # Create a PDF document object that stores the document structure.
+        # Supply the password for initialization.
+        document = PDFDocument(parser, password="")
+        # Create a PDF resource manager object that stores shared resources.
+        rsrcmgr = PDFResourceManager()
+        # Set parameters for analysis.
+        laparams = LAParams(char_margin=1.0, word_margin=0.1, detect_vertical=True)
+        # Create a PDF page aggregator object.
+        device = CustomPDFPageAggregator(rsrcmgr, laparams=laparams)
+        # Create a PDF interpreter object.
+        interpreter = PDFPageInterpreter(rsrcmgr, device)
+        # Process each page contained in the document.
+        for page_num, page in enumerate(PDFPage.create_pages(document)):
+            try:
+                interpreter.process_page(page)
+            except OverflowError as oe:
+                log.exception("{}, skipping page {} of pdf".format(oe, page_num))
+                continue
+            layout = device.get_result()
+            layouts.append(layout)
 
         for page_num, layout in enumerate(layouts):
             page_num += 1  # indexes start at 1
@@ -229,7 +227,7 @@ class TreeExtractor(object):
                 page_width = int(self.elems[page_num].layout.width)
                 page_height = int(self.elems[page_num].layout.height)
                 image, pred = predict_heatmap(
-                    self.pdf_file, page_num - 1, model
+                    self.pdf_string, page_num - 1, model
                 )  # index start at 0 with wand
                 bboxes, _ = get_bboxes(image, pred)
                 tables[page_num] = [
@@ -307,7 +305,7 @@ class TreeExtractor(object):
         for page_num in self.elems.keys():  # 1-based
             boxes: List[Tuple[str, float, float, float, float]] = []
             for clust in self.tree[page_num]:
-                for (pnum, pwidth, pheight, top, left, bottom, right) in self.tree[
+                for pnum, pwidth, pheight, top, left, bottom, right in self.tree[
                     page_num
                 ][clust]:
                     boxes += [
@@ -320,7 +318,7 @@ class TreeExtractor(object):
             height = int(self.elems[page_num].layout.height)
             page.setAttribute(
                 "title",
-                #f"bbox 0 0 {width} {height}; ppageno {page_num-1}",
+                # f"bbox 0 0 {width} {height}; ppageno {page_num-1}",
                 f"bbox 0 0 {width} {height}",
             )
             body.appendChild(page)
@@ -414,7 +412,9 @@ class TreeExtractor(object):
                 mention_chars.append([obj.get_text(), y0, x0, y1, x1])
         return mention_chars
 
-    def get_html_others(self, tag: str, box: List[float], page_num: int, box_id: int) -> Element:
+    def get_html_others(
+        self, tag: str, box: List[float], page_num: int, box_id: int
+    ) -> Element:
         element = self.doc.createElement("div")
         element.setAttribute("class", "ocrx_block")
         element.setAttribute("id", f"block_{page_num}_{box_id}")
@@ -438,7 +438,9 @@ class TreeExtractor(object):
                 word_element = self.doc.createElement("span")
                 line_element.appendChild(word_element)
                 word_element.setAttribute("class", "ocrx_word")
-                word_element.setAttribute("id", f"word_{page_num}_{box_id}_{line_id}_{word_id}")
+                word_element.setAttribute(
+                    "id", f"word_{page_num}_{box_id}_{line_id}_{word_id}"
+                )
                 word_element.setAttribute(
                     "title", f"bbox {left} {top} {right} {bottom}"
                 )
@@ -456,7 +458,7 @@ class TreeExtractor(object):
         logger.debug(f"Calling tabula at page: {page_num} and area: {table}.")
         loglevel = logging.getLogger("pdftotree").getEffectiveLevel()
         table_json = tabula.read_pdf(
-            self.pdf_file,
+            io.BytesIO(b"" + self.pdf_string),
             pages=page_num,
             area=table,
             output_format="json",
@@ -500,7 +502,9 @@ class TreeExtractor(object):
                     line_element = self.doc.createElement("span")
                     cell_element.appendChild(line_element)
                     line_element.setAttribute("class", "ocrx_line")
-                    line_element.setAttribute("id", f"line_{page_num}_{box_id}_{line_id}")
+                    line_element.setAttribute(
+                        "id", f"line_{page_num}_{box_id}_{line_id}"
+                    )
                     line_element.setAttribute("title", bbox2str(elem.bbox))
                     words = self.get_word_boundaries(elem)
                     for word_id, word in enumerate(words):
@@ -512,7 +516,9 @@ class TreeExtractor(object):
                         word_element = self.doc.createElement("span")
                         line_element.appendChild(word_element)
                         word_element.setAttribute("class", "ocrx_word")
-                        word_element.setAttribute("id", f"word_{page_num}_{box_id}_{line_id}_{word_id}")
+                        word_element.setAttribute(
+                            "id", f"word_{page_num}_{box_id}_{line_id}_{word_id}"
+                        )
                         word_element.setAttribute(
                             "title", f"bbox {left} {top} {right} {bottom}"
                         )

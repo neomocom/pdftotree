@@ -96,7 +96,7 @@ def extend_vertical_lines(horizontal_lines, tol=TOLERANCE):
         except KeyError:
             widths[(line[1], line[3])] = [i]
     new_vertical_lines = []
-    for (x0, x1) in widths.keys():
+    for x0, x1 in widths.keys():
         if len(widths[(x0, x1)]) > 1:
             lines = [horizontal_lines[i] for i in widths[(x0, x1)]]
             y0 = min([h[0] for h in lines])
@@ -113,7 +113,7 @@ def extend_horizontal_lines(vertical_lines, tol=TOLERANCE):
         except KeyError:
             heights[(line[0], line[2])] = [i]
     new_horizontal_lines = []
-    for (y0, y1) in heights.keys():
+    for y0, y1 in heights.keys():
         if len(heights[(y0, y1)]) > 1:
             lines = [vertical_lines[i] for i in heights[(y0, y1)]]
             x0 = min([h[1] for h in lines])
